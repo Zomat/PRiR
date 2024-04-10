@@ -6,58 +6,56 @@
 
 const int k = 10;  // liczba palaczy
 const int l = 4;  // liczba ubijaczy
-const int m = 4;  // liczba pudełek zapałek
+const int m = 3;  // liczba pudełek zapałek
 
-sem_t ubijacze;
-sem_t pudełkaZapałek;
+sem_t fillers;
+sem_t matchbox;
 std::mutex coutMutex;
 
-void komunikat(const std::string& msg) {
+void message(const std::string& msg) {
     coutMutex.lock();
     std::cout << msg << std::endl;
     coutMutex.unlock();
 }
 
-void palacz(int palaczID) {
+void smoker(int id) {
     while (true) {
-        komunikat("Palacz " + std::to_string(palaczID) + " czeka na ubijacza.");
-        sem_wait(&ubijacze);
-        komunikat("Palacz " + std::to_string(palaczID) + " używa ubijacza.");
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // symulacja czasu potrzebnego na ubijanie
-        komunikat("Palacz " + std::to_string(palaczID) + " oddaje ubijacz.");
-        sem_post(&ubijacze);
+        message("Palacz " + std::to_string(id) + " czeka na ubijacza.");
+        sem_wait(&fillers);
+
+        message("Palacz " + std::to_string(id) + " używa ubijacza.");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        message("Palacz " + std::to_string(id) + " oddaje ubijacz.");
+
+        sem_post(&fillers);
         
-        komunikat("Palacz " + std::to_string(palaczID) + " czeka na pudełko zapałek.");
-        sem_wait(&pudełkaZapałek);
-        komunikat("Palacz " + std::to_string(palaczID) + " zapala fajkę.");
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // symulacja czasu potrzebnego na zapalenie fajki
-        komunikat("Palacz " + std::to_string(palaczID) + " oddaje pudełko zapałek.");
-        sem_post(&pudełkaZapałek);
+        message("Palacz " + std::to_string(id) + " czeka na pudełko zapałek.");
+        sem_wait(&matchbox);
+        message("Palacz " + std::to_string(id) + " zapala fajkę.");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        message("Palacz " + std::to_string(id) + " oddaje pudełko zapałek.");
+        sem_post(&matchbox);
         
-        komunikat("Palacz " + std::to_string(palaczID) + " pali fajkę.");
-        std::this_thread::sleep_for(std::chrono::seconds(2)); // symulacja czasu trwania palenia fajki
+        message("Palacz " + std::to_string(id) + " pali fajkę.");
+        std::this_thread::sleep_for(std::chrono::seconds(2));
     }
 }
 
 int main() {
-    // Inicjalizacja semaforów
-    sem_init(&ubijacze, 0, l);
-    sem_init(&pudełkaZapałek, 0, m);
+    sem_init(&fillers, 0, l);
+    sem_init(&matchbox, 0, m);
 
-    // Tworzenie i uruchamianie wątków palaczy
-    std::thread palacze[k];
+    std::thread smokers[k];
     for (int i = 0; i < k; ++i) {
-        palacze[i] = std::thread(palacz, i);
+        smokers[i] = std::thread(smoker, i);
     }
 
-    // Oczekiwanie na zakończenie wątków palaczy
     for (int i = 0; i < k; ++i) {
-        palacze[i].join();
+        smokers[i].join();
     }
 
-    // Zwalnianie semaforów
-    sem_destroy(&ubijacze);
-    sem_destroy(&pudełkaZapałek);
+    sem_destroy(&fillers);
+    sem_destroy(&matchbox);
 
     return 0;
 }
